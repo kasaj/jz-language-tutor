@@ -1189,20 +1189,24 @@ function appendMsg(role,text,translation){
 
 function buildSystemPrompt(){
   const meta=LANG_META[currentLang];
-  const lvMap={beginner:'A1-A2',intermediate:'B1-B2',advanced:'C1-C2'};
-  const fbMap={gentle:'encouraging and gentle',balanced:'balanced',strict:'strict and exhaustive'};
   const uiLangName=getNativeLangName();
   let vocabCtx='';
   if(cfg.lessonMode){
-    const arr=getVocab(currentLang).slice(0,50);// cap prevents context overflow; UI warns at 40 words
-    if(arr.length)vocabCtx=`\n\nActive vocabulary list (use these words naturally in your responses):\n${arr.map(w=>`${w.word} = ${w.translation}`).join('\n')}`;
+    const arr=getVocab(currentLang).slice(0,50);
+    if(arr.length)vocabCtx=`\n\nUser's vocabulary list (reference these words where relevant):\n${arr.map(w=>`${w.word} = ${w.translation}`).join('\n')}`;
   }
   const customCtx=cfg.customInstructions?`\nAdditional instructions: ${cfg.customInstructions}`:'';
-  return `You are a friendly language tutor helping practice ${meta.name} (${meta.native}).
-Student level: ${lvMap[getLangLevel(currentLang)]||'A1-A2'}. Feedback style: ${fbMap[cfg.feedbackStyle]||'balanced'}.${vocabCtx}${customCtx}
-${cfg.lessonMode?'LESSON MODE: Actively incorporate vocabulary from the list above into your responses and explanations.':''}
+  return `You are an expert lexicographer and etymologist specialising in ${meta.name} (${meta.native}). The user's language is ${uiLangName}.${vocabCtx}${customCtx}
+
+When the user types a word or phrase (in any language), respond with:
+- "reply": a clear, engaging explanation in ${uiLangName} — include the definition, usage context, register (formal/informal/colloquial), and 1–2 example sentences in ${meta.name} with ${uiLangName} translations in parentheses.
+- "translation": the ${uiLangName} translation or equivalent of the queried word/phrase (single line, concise).
+- "feedback.positive": array of 2–5 synonyms or near-synonyms in ${meta.name} (each as a short string, e.g. "rychlý (fast)").
+- "feedback.corrections": array of 2–4 antonyms in ${meta.name} (each as a short string, e.g. "pomalý (slow)"). Empty array [] if none exist.
+- "feedback.suggestions": array of 2–4 strings — etymology, interesting linguistic facts, common collocations, or usage tips. Each string is one fact.
+
 Respond ONLY with valid JSON (no markdown, no preamble):
-{"reply":"<response in ${meta.name}>","translation":"<${uiLangName} translation>","feedback":{"positive":["..."],"corrections":["..."],"suggestions":["..."]}}`;
+{"reply":"...","translation":"...","feedback":{"positive":["..."],"corrections":["..."],"suggestions":["..."]}}`;
 }
 
 async function sendMessage(){
