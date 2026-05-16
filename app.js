@@ -77,14 +77,14 @@ const MODELS={
   ollama:getModelsForProvider('ollama'),
   custom:[]
 };
-const DEFAULT_PROVIDER_SETTINGS={anthropic:{apiKey:'',model:''},openai:{apiKey:'',model:''},gemini:{apiKey:'',model:''},ollama:{apiKey:'',model:'',url:'http://localhost:11434'},custom:{apiKey:'',model:'',url:''}};
+const DEFAULT_PROVIDER_SETTINGS={anthropic:{apiKey:'',model:'',url:''},openai:{apiKey:'',model:''},gemini:{apiKey:'',model:''},ollama:{apiKey:'',model:'',url:'http://localhost:11434'},custom:{apiKey:'',model:'',url:''}};
 const LANG_META={bulgarian:{name:'Bulgarian',native:'Български',flag:'🇧🇬',lang:'bg'},croatian:{name:'Croatian',native:'Hrvatski',flag:'🇭🇷',lang:'hr'},czech:{name:'Czech',native:'Čeština',flag:'🇨🇿',lang:'cs'},danish:{name:'Danish',native:'Dansk',flag:'🇩🇰',lang:'da'},dutch:{name:'Dutch',native:'Nederlands',flag:'🇳🇱',lang:'nl'},english:{name:'English',native:'English',flag:'🇬🇧',lang:'en'},estonian:{name:'Estonian',native:'Eesti',flag:'🇪🇪',lang:'et'},finnish:{name:'Finnish',native:'Suomi',flag:'🇫🇮',lang:'fi'},french:{name:'French',native:'Français',flag:'🇫🇷',lang:'fr'},german:{name:'German',native:'Deutsch',flag:'🇩🇪',lang:'de'},greek:{name:'Greek',native:'Ελληνικά',flag:'🇬🇷',lang:'el'},hungarian:{name:'Hungarian',native:'Magyar',flag:'🇭🇺',lang:'hu'},italian:{name:'Italian',native:'Italiano',flag:'🇮🇹',lang:'it'},latvian:{name:'Latvian',native:'Latviešu',flag:'🇱🇻',lang:'lv'},lithuanian:{name:'Lithuanian',native:'Lietuvių',flag:'🇱🇹',lang:'lt'},norwegian:{name:'Norwegian',native:'Norsk',flag:'🇳🇴',lang:'no'},polish:{name:'Polish',native:'Polski',flag:'🇵🇱',lang:'pl'},portuguese:{name:'Portuguese',native:'Português',flag:'🇵🇹',lang:'pt'},romanian:{name:'Romanian',native:'Română',flag:'🇷🇴',lang:'ro'},serbian:{name:'Serbian',native:'Srpski',flag:'🇷🇸',lang:'sr'},slovak:{name:'Slovak',native:'Slovenčina',flag:'🇸🇰',lang:'sk'},slovenian:{name:'Slovenian',native:'Slovenščina',flag:'🇸🇮',lang:'sl'},spanish:{name:'Spanish',native:'Español',flag:'🇪🇸',lang:'es'},swedish:{name:'Swedish',native:'Svenska',flag:'🇸🇪',lang:'sv'},ukrainian:{name:'Ukrainian',native:'Українська',flag:'🇺🇦',lang:'uk'},arabic:{name:'Arabic',native:'العربية',flag:'🇸🇦',lang:'ar'},chinese:{name:'Chinese',native:'中文',flag:'🇨🇳',lang:'zh'},hindi:{name:'Hindi',native:'हिन्दी',flag:'🇮🇳',lang:'hi'},japanese:{name:'Japanese',native:'日本語',flag:'🇯🇵',lang:'ja'},korean:{name:'Korean',native:'한국어',flag:'🇰🇷',lang:'ko'},turkish:{name:'Turkish',native:'Türkçe',flag:'🇹🇷',lang:'tr'}};
 const SORT_MODES=['alpha','due','new'];
 let sortIdx=0;
 
 // Shared across all views — starting a new request or switching views cancels any in-flight LLM call.
 let _abortCtrl=null;
-let cfg={provider:'anthropic',model:MODELS.anthropic[0],apiKey:'',ollamaUrl:'http://localhost:11434',customUrl:'',customModel:'',feedbackStyle:'balanced',customInstructions:'',uiLang:navigator.language.startsWith('cs')?'cs':'en',nativeLang:'',lessonMode:false,fontSize:'medium',theme:'auto',defaultView:'fc',providerSettings:{}};
+let cfg={provider:'anthropic',model:MODELS.anthropic[0],apiKey:'',anthropicUrl:'',ollamaUrl:'http://localhost:11434',customUrl:'',customModel:'',feedbackStyle:'balanced',customInstructions:'',uiLang:navigator.language.startsWith('cs')?'cs':'en',nativeLang:'',lessonMode:false,fontSize:'medium',theme:'auto',defaultView:'fc',providerSettings:{}};
 let langLevels={};
 function getLangLevel(lang){return langLevels[lang]||'beginner';}
 function getNativeLangName(){const key=cfg.nativeLang||(cfg.uiLang==='cs'?'czech':'english');return LANG_META[key]?.name??'English';}
@@ -122,6 +122,7 @@ function populateLangSelects(){
 function _saveProviderSettings(p){
   const ps=cfg.providerSettings[p]||(cfg.providerSettings[p]={});
   ps.apiKey=(document.getElementById('cfg-apikey')?.value||'').trim();
+  if(p==='anthropic')ps.url=(document.getElementById('cfg-anthropic-url')?.value||'').trim();
   if(p==='ollama')ps.url=(document.getElementById('cfg-ollama-url')?.value||'').trim();
   if(p==='custom'){ps.url=(document.getElementById('cfg-custom-url')?.value||'').trim();ps.model=(document.getElementById('cfg-custom-model')?.value||'').trim();}
   else ps.model=document.getElementById('cfg-model')?.value||'';
@@ -129,11 +130,13 @@ function _saveProviderSettings(p){
 function _loadProviderSettings(p){
   const ps=cfg.providerSettings[p]||{};
   cfg.apiKey=ps.apiKey||'';
+  if(p==='anthropic')cfg.anthropicUrl=ps.url||'';
   if(p==='ollama')cfg.ollamaUrl=ps.url||'http://localhost:11434';
   if(p==='custom'){cfg.customUrl=ps.url||'';cfg.customModel=ps.model||'';}
   else cfg.model=ps.model||(MODELS[p]?.[0]||'');
   const _g=id=>document.getElementById(id);
   if(_g('cfg-apikey'))_g('cfg-apikey').value=cfg.apiKey;
+  if(_g('cfg-anthropic-url'))_g('cfg-anthropic-url').value=cfg.anthropicUrl||'';
   if(_g('cfg-ollama-url'))_g('cfg-ollama-url').value=cfg.ollamaUrl;
   if(_g('cfg-custom-url'))_g('cfg-custom-url').value=cfg.customUrl;
   if(_g('cfg-custom-model'))_g('cfg-custom-model').value=cfg.customModel;
@@ -150,6 +153,7 @@ function _loadProviderSettings(p){
   // Migrate model/url for current provider slot
   const _ps=cfg.providerSettings[cfg.provider];
   if(cfg.provider!=='custom'&&!_ps.model&&cfg.model)_ps.model=cfg.model;
+  if(cfg.provider==='anthropic'&&!_ps.url&&cfg.anthropicUrl)_ps.url=cfg.anthropicUrl;
   if(cfg.provider==='ollama'&&!_ps.url&&cfg.ollamaUrl)_ps.url=cfg.ollamaUrl;
   if(cfg.provider==='custom'){if(!_ps.url&&cfg.customUrl)_ps.url=cfg.customUrl;if(!_ps.model&&cfg.customModel)_ps.model=cfg.customModel;}
   applyFontSize(cfg.fontSize||'medium');
@@ -382,6 +386,7 @@ function populateSettingsUI(){
   _ci.value=cfg.customInstructions||'';
   document.getElementById('cfg-custom-instructions-count').textContent=_ci.value.length;
   document.getElementById('cfg-apikey').value=cfg.apiKey||'';
+  document.getElementById('cfg-anthropic-url').value=cfg.anthropicUrl||'';
   document.getElementById('cfg-ollama-url').value=cfg.ollamaUrl;
   document.getElementById('cfg-custom-url').value=cfg.customUrl||'';
   document.getElementById('cfg-custom-model').value=cfg.customModel||'';
@@ -520,6 +525,7 @@ async function fetchAndRebuildModels(){
 function toggleProviderFields(p){
   const isOllama=p==='ollama',isCustom=p==='custom',isAnthropic=p==='anthropic';
   document.getElementById('field-apikey').style.display='';
+  document.getElementById('field-anthropic-url').style.display=isAnthropic?'':'none';
   document.getElementById('field-ollama-url').style.display=isOllama?'':'none';
   document.getElementById('field-custom-url').style.display=isCustom?'':'none';
   document.getElementById('field-custom-model').style.display=isCustom?'':'none';
@@ -535,6 +541,7 @@ function saveSettings(){
   cfg.provider=document.getElementById('cfg-provider').value;
   cfg.model=document.getElementById('cfg-model').value;
   cfg.apiKey=document.getElementById('cfg-apikey').value.trim();
+  cfg.anthropicUrl=(document.getElementById('cfg-anthropic-url')?.value||'').trim();
   cfg.ollamaUrl=document.getElementById('cfg-ollama-url').value.trim();
   cfg.customUrl=document.getElementById('cfg-custom-url').value.trim();
   cfg.customModel=document.getElementById('cfg-custom-model').value.trim();
@@ -1381,7 +1388,11 @@ async function safeLLM(msgs,sys,maxTokens=1024,signal){
 async function callAnthropic(msgs,sys,maxTokens=1024,signal){
   if(!cfg.apiKey)throw new Error('NO_KEY');
   const filteredMsgs=msgs.filter(m=>m.role==='user'||m.role==='assistant');
-  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-calls':'true'},body:JSON.stringify({model:cfg.model,max_tokens:maxTokens,system:sys||undefined,messages:filteredMsgs}),signal});
+  const anthropicEndpoint=cfg.anthropicUrl||'https://api.anthropic.com/v1/messages';
+  const isDirect=!cfg.anthropicUrl;
+  const headers={'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01'};
+  if(isDirect)headers['anthropic-dangerous-direct-browser-calls']='true';
+  const res=await fetch(anthropicEndpoint,{method:'POST',headers,body:JSON.stringify({model:cfg.model,max_tokens:maxTokens,system:sys||undefined,messages:filteredMsgs}),signal});
   if(!res.ok)await httpErr(res);
   const d1=await res.json();
   if(d1.stop_reason==='max_tokens')throw new Error('MAX_TOKENS');
@@ -1459,7 +1470,11 @@ async function readSSE(response,onData){
 async function callAnthropicStream(msgs,sys,maxTokens,signal,onChunk){
   if(!cfg.apiKey)throw new Error('NO_KEY');
   const filteredMsgs=msgs.filter(m=>m.role==='user'||m.role==='assistant');
-  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-calls':'true'},body:JSON.stringify({model:cfg.model,max_tokens:maxTokens,stream:true,system:sys||undefined,messages:filteredMsgs}),signal});
+  const anthropicEndpoint=cfg.anthropicUrl||'https://api.anthropic.com/v1/messages';
+  const isDirect=!cfg.anthropicUrl;
+  const headers={'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01'};
+  if(isDirect)headers['anthropic-dangerous-direct-browser-calls']='true';
+  const res=await fetch(anthropicEndpoint,{method:'POST',headers,body:JSON.stringify({model:cfg.model,max_tokens:maxTokens,stream:true,system:sys||undefined,messages:filteredMsgs}),signal});
   if(!res.ok)await httpErr(res);
   let full='';
   await readSSE(res,data=>{

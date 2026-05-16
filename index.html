@@ -177,6 +177,10 @@
         <div class="hint" id="apikey-storage-warn" style="margin-top:4px"></div>
       </div>
       <div class="hint" id="s-anthropic-hint" style="display:none"></div>
+      <div class="field" id="field-anthropic-url" style="display:none"><label>Anthropic URL</label>
+        <input type="text" id="cfg-anthropic-url" placeholder="https://api.anthropic.com/v1/messages" onchange="autoSaveProviderCfg()">
+        <div class="hint">Volitelné — vyplň jen pro Azure AI Foundry nebo vlastní proxy. Prázdné = přímé api.anthropic.com.</div>
+      </div>
       <div class="field" id="field-ollama-url" style="display:none"><label>Ollama URL</label>
         <input type="text" id="cfg-ollama-url" placeholder="http://localhost:11434" onchange="autoSaveProviderCfg()">
         <div class="hint" id="s-ollama-hint">Ollama musí mít povoleno CORS pro tuto doménu.</div>
