@@ -239,3 +239,9 @@ select:focus{outline:2px solid var(--pri)}
 .speak-btn:active{transform:scale(0.95)}
 .speak-btn.speaking{animation:speak-pulse 0.5s}
 @keyframes speak-pulse{0%{opacity:1}50%{opacity:0.6}100%{opacity:1}}
+
+
+/* iOS auto-zoom fix — Safari zooms in when input font-size < 16px */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select { font-size: max(16px, 1em) !important; }
+}
